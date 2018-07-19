@@ -96,7 +96,7 @@ public class DeviceStatusServiceImpl implements DeviceStatusService {
              String sendMessage = dtuObj.toJSONString();
              System.out.println(sendMessage);
              HttpClient.sendPost(gateWayurl, sendMessage);
-
+             logger.log(Level.INFO,"sendMessage:"+sendMessage);
 
          }catch (Exception e){
              logger.log(Level.INFO,null,e);
