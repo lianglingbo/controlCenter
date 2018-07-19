@@ -152,7 +152,7 @@ public class SendTest {
      */
     @Test
     public void send2(){
-        String json = " { \"accountName\":\"操作人\",\"id\":\"944CD3EF\", \"valveId\":\"201703001320\",\"action\":\"Open\"}";
+        String json = " { \"accountName\":\"操作人\",\"id\":\"944CD3EF\", \"valveId\":\"201703001320\",\"action\":\"Close\"}";
         String url = "http://47.93.21.73:18081/deviceStatus/changeValve";
         HttpClient.sendPost(url, json);
 

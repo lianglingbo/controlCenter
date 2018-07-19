@@ -66,7 +66,7 @@ public class DeviceStatusServiceImpl implements DeviceStatusService {
              JSONArray dtuValueArr = new JSONArray();
              JSONObject optionsObj = new JSONObject();
              //配置项参数
-             optionsObj.put("isAutoClear","1");
+             optionsObj.put("isAutoClear","10");
              optionsObj.put("protocol", ValveProtocol);
              optionsObj.put("dtuId",id);
              optionsObj.put("accountName", accountName);
@@ -129,11 +129,11 @@ public class DeviceStatusServiceImpl implements DeviceStatusService {
                     String valveId = options.getString("valveId");
                     String action = options.getString("action");
                     String key = "DEVICESTATUS_"+valveId;
-                    String value = action;
+                    String status="{\"status\":\""+action +"\"}";
 
                     try {
                         //更新redis数据库
-                        redisUtils.setKV(key,value);
+                        redisUtils.setKV(key,status);
                         //更新mysql数据库,valveState阀门状态(0 关, 1 开)
                         String valveState = "";
                         if ("Close".equals(action)) {
