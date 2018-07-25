@@ -1,7 +1,13 @@
 package com.joymeter.controlcenter.utils;
 
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+
+import java.lang.reflect.Array;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.util.Collection;
+import java.util.Map;
 
 /**
  * @ClassName CommonsUtils
@@ -52,4 +58,24 @@ public class CommonsUtils {
 
         return "";
     }
+    public static boolean isEmpty(Object obj) {
+        if(obj == null){
+            return  true;
+        }
+        if(obj instanceof  String && obj.toString().length() == 0){
+            return true;
+        }
+        if(obj.getClass().isArray() && Array.getLength(obj) == 0){
+            return true;
+        }
+        if(obj instanceof Collection && ((Collection) obj).isEmpty()){
+            return true;
+        }
+        if (obj instanceof Map && ((Map) obj).isEmpty()) {
+            return true;
+        }
+        return false;
+
+    }
+
 }

@@ -2,6 +2,7 @@ package dataSend;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.joymeter.controlcenter.domain.QueryParam;
 import com.joymeter.controlcenter.service.impl.DeviceStatusServiceImpl;
 import com.joymeter.controlcenter.utils.httpclient.HttpClient;
 import org.junit.Test;
@@ -152,11 +153,16 @@ public class SendTest {
      */
     @Test
     public void send2(){
-        String json = " { \"accountName\":\"操作人\",\"id\":\"944CD3EF\", \"valveId\":\"201703001320\",\"action\":\"Close\"}";
+        String json = " { \"accountName\":\"操作人\",\"id\":\"944CD3EF\", \"valveId\":\"201703001320\",\"action\":\"Open\"}";
         String url = "http://47.93.21.73:18081/deviceStatus/changeValve";
         HttpClient.sendPost(url, json);
+    }
 
-
+    @Test
+    public void send3(){
+        String json = " { \"accountName\":\"操作人\",\"dtuId\":\"944CD3EF\", \"deviceId\":\"201703001320\"}";
+        String url = "http://47.93.21.73:18081/deviceStatus/getDeviceState";
+        HttpClient.sendPost(url, json);
     }
 
     @Test
@@ -164,6 +170,23 @@ public class SendTest {
         String json = "{\"data9\":{},\"date\":\"2018-07-17 17:50:42\",\"data8\":\"0\",\"data7\":\"0\",\"data6\":\"0\",\"data5\":\"0\",\"data4\":\"0\",\"meter\":\"201703001320\",\"data3\":\"0\",\"data2\":\"0\",\"data1\":\"3306.71\",\"result\":\"0\",\"options\":{\"isAutoClear\":\"1\",\"balanceWarnning\":\"null\",\"protocol\":\"com.joymeter.dtu.data.other.valve.ParseElecValveData_001_Open\",\"concentrator_model\":\"2\",\"accountName\":\"操作人\",\"valveId\":\"201703001320\",\"dtuId\":\"944CD3EF\",\"action\":\"Open\",\"valveClose\":\"null\",\"sendTime\":1531821042627},\"category\":\"40\"}\n";
         DeviceStatusServiceImpl dev = new DeviceStatusServiceImpl();
         dev.dtuCallBack(json);
+
+    }
+    @Test
+    public void sendwx(){
+        String url = "http://60.205.218.69:1841/joy/saas/v1/device/close";
+        String json = "{\"client_id\":\"123\",\"access_token\":\"\",\"device_id\":\"330000000019\"} ";// 330000000019 , 318040000194
+        String s = HttpClient.sendPost(url, json);
+        System.out.println(s);
+    }
+    @Test
+    public void testBean(){
+        QueryParam queryParam = new QueryParam();
+        queryParam.setAccountName("操作人");
+        queryParam.setCallbackurl("回调地址");
+        queryParam.setProtocol("协议");
+        JSONObject jsonObject = queryParam.queryJsonFormat();
+        System.out.println(jsonObject.toString());
 
     }
 }

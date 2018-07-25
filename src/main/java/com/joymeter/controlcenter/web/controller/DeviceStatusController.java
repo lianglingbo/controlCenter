@@ -39,6 +39,18 @@ public class DeviceStatusController {
     }
 
 
+    /**
+     * {DTU: [{id:'dtu Id', url:'url', options:{isAutoClear: '0', accountName:
+     *      * '张三'}, meters:[{meter:'表号', category:'10', protocol:'188'}
+     * @param data
+     */
+    //获取设备状态 ，
+    @RequestMapping("/getDeviceState")
+    @ResponseBody
+    public void getDeviceState(@RequestBody String data){
+        deviceStatusService.getDeviceState(data);
+    }
+
     //给dtu提供回调接口，返回成功消息
     //result: 0 成功 1 失败
     @RequestMapping("/dtuCallBack")
@@ -46,6 +58,9 @@ public class DeviceStatusController {
     public void dtuCallBack(@RequestParam("parameters")String data){
         deviceStatusService.dtuCallBack(data);
     }
+
+
+
 
 
 

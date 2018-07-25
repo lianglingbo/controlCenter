@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.joymeter.controlcenter.dao.mapper.DeviceInfoMapper;
 import com.joymeter.controlcenter.domain.DeviceInfo;
+import com.joymeter.controlcenter.domain.QueryParam;
 import com.joymeter.controlcenter.service.DeviceStatusService;
 import com.joymeter.controlcenter.utils.CommonsUtils;
 import com.joymeter.controlcenter.utils.RedisUtils;
@@ -40,6 +41,8 @@ public class DeviceStatusServiceImpl implements DeviceStatusService {
      *     "valveId":"阀门编号",
      *     "action":"Close/Open"
      * }
+     * 协议,有线 无线
+     *
      */
     @Override
     public void changeValveState(String data) {
@@ -56,51 +59,62 @@ public class DeviceStatusServiceImpl implements DeviceStatusService {
              //获取协议，category，接口url，
              String category = deviceInfo.getCategory();
              String ValveProtocol = deviceInfo.getValveProtocol()+"_"+action;
+             if(CommonsUtils.isEmpty(ValveProtocol)) return;
+             if(ValveProtocol.contains("JLAA")){
+                //无线表
+                changeJLAAValveState(valveId,action);
+                return;
+             }
              String gateWayurl = deviceInfo.getGatewayUrl();
              gateWayurl = "http://"+gateWayurl+"/arm/api/reading";
             //回调函数
              String callbackurl = "http://47.93.21.73:18081/deviceStatus/dtuCallBack";
              /*===============================*/
-             //添加嵌套元素
-             JSONObject dtuObj = new JSONObject();
-             JSONArray dtuValueArr = new JSONArray();
-             JSONObject optionsObj = new JSONObject();
-             //配置项参数
-             optionsObj.put("isAutoClear","10");
-             optionsObj.put("protocol", ValveProtocol);
-             optionsObj.put("dtuId",id);
-             optionsObj.put("accountName", accountName);
-             optionsObj.put("sendTime",System.currentTimeMillis());
-             optionsObj.put("balanceWarnning","null");
-             optionsObj.put("valveClose","null");
-             optionsObj.put("concentrator_model","2");
-             //回调时判断那只表做的操作
-             optionsObj.put("action",action);
-             optionsObj.put("valveId",valveId);
-             //表参数
-             JSONArray metersArray = new JSONArray();
-             JSONObject meters1 = new JSONObject();
-             meters1.put("meter",valveId);
-             meters1.put("category",category);
-             meters1.put("protocol",ValveProtocol);
-             metersArray.add(meters1);
-             //DTU数组对应的值，复杂形式json对象
-             JSONObject info = new JSONObject();
-             info.put("id",id);
-             info.put("url",callbackurl);
-             info.put("options",optionsObj);
-             info.put("meters",metersArray);
-             dtuValueArr.add(info);
-             dtuObj.put("DTU",dtuValueArr);
-             /*===============================*/
+             //构建查询json
+             QueryParam queryParam = new QueryParam();
+             queryParam.setIsAutoClear("10");
+             queryParam.setAccountName(accountName);
+             queryParam.setDtuId(id);
+             queryParam.setMeter(valveId);
+             queryParam.setCallbackurl(callbackurl);
+             queryParam.setCategory(category);
+             queryParam.setProtocol(ValveProtocol);
+             JSONObject dtuObj = queryParam.queryJsonFormat();
+             ///-----------
              String sendMessage = dtuObj.toJSONString();
-             System.out.println(sendMessage);
-             HttpClient.sendPost(gateWayurl, sendMessage);
+              HttpClient.sendPost(gateWayurl, sendMessage);
              logger.log(Level.INFO,"sendMessage:"+sendMessage);
 
          }catch (Exception e){
              logger.log(Level.INFO,null,e);
          }
+
+    }
+
+    /**
+     * 无线：
+     * 开阀：http://60.205.218.69:1841/joy/saas/v1/device/open
+     * 关阀：http://60.205.218.69:1841/joy/saas/v1/device/close
+     * {
+     * "client_id":"123",
+     * "access_token":"",
+     * "device_id":"12345678"
+     * }
+     * @param valveId
+     */
+    public void changeJLAAValveState(String valveId,String action){
+        String url = "http://60.205.218.69:1841/joy/saas/v1/device/";
+        if("Close".equals(action)){
+            url = url + "close";
+        }else if("Open".equals(action)){
+            url = url +"open";
+        }
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("client_id"," ");
+        jsonObject.put("access_token"," ");
+        jsonObject.put("device_id",valveId);
+        String s = HttpClient.sendPost(url, jsonObject.toJSONString());
+
 
     }
 
@@ -154,5 +168,82 @@ public class DeviceStatusServiceImpl implements DeviceStatusService {
             logger.log(Level.INFO,null,e);
             return null;
         }
+    }
+
+    /**
+     * 获取设备实时数据状态
+     * 数据格式为：
+     *   {
+     *      "accountName":"操作人",
+     *      "dtuId":"dtuId",
+     *      "deviceId":"设备编号",
+     *      "callbackurl":callbackurl
+     *  }
+     * @param data
+     */
+    @Override
+    public void getDeviceState(String data) {
+        if (StringUtils.isEmpty(data))return;
+        try {
+            JSONObject jsonData = JSONObject.parseObject(data);
+            String accountName = jsonData.getString("accountName");
+            String dtuId = jsonData.getString("dtuId");
+            String deviceId = jsonData.getString("deviceId");
+            //回调函数
+            String callbackurl = "http://47.93.21.73:18081/deviceStatus/dtuCallBack";
+            //通过设备编号获取设备信息
+            DeviceInfo deviceInfo = deviceInfoMapper.getDeviceInfoByValveId(deviceId);
+            if(StringUtils.isEmpty(deviceInfo))return;
+            //获取协议，category，接口url，
+            String category = deviceInfo.getCategory();
+            String deviceProtocol = deviceInfo.getDeviceProtocol();
+            if(CommonsUtils.isEmpty(deviceProtocol)) return;
+            if(deviceProtocol.contains("JLAA")){
+                //无线表
+                 getJLAADeviceState(deviceId);
+                return;
+            }
+            String gateWayurl = deviceInfo.getGatewayUrl();
+            gateWayurl = "http://"+gateWayurl+"/arm/api/reading";
+            //构建查询json
+            QueryParam queryParam = new QueryParam();
+            queryParam.setIsAutoClear("1");
+            queryParam.setAccountName(accountName);
+            queryParam.setDtuId(dtuId);
+            queryParam.setMeter(deviceId);
+            queryParam.setCallbackurl(callbackurl);
+            queryParam.setCategory(category);
+            queryParam.setProtocol(deviceProtocol);
+            JSONObject dtuObj = queryParam.queryJsonFormat();
+            ///-----------
+            String sendMessage = dtuObj.toJSONString();
+            System.out.println(sendMessage);
+            HttpClient.sendPost(gateWayurl, sendMessage);
+            logger.log(Level.INFO,"sendMessage:"+sendMessage);
+
+        }catch (Exception e){
+            logger.log(Level.INFO,null,e);
+        }
+    }
+
+    /**
+
+     * {
+     * "client_id":"123",
+     * "access_token":"",
+     * "device_id":"12345678"
+     * }
+     * @param
+     */
+    public void getJLAADeviceState(String deviceId){
+        String url = "http://60.205.218.69:1841/joy/saas/v1/device/get";
+
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("client_id"," ");
+        jsonObject.put("access_token"," ");
+        jsonObject.put("device_id",deviceId);
+        String s = HttpClient.sendPost(url, jsonObject.toJSONString());
+
+
     }
 }
