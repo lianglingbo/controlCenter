@@ -160,9 +160,14 @@ public class SendTest {
 
     @Test
     public void send3(){
-        String json = " { \"accountName\":\"操作人\",\"dtuId\":\"944CD3EF\", \"deviceId\":\"201703001320\"}";
-        String url = "http://47.93.21.73:18081/deviceStatus/getDeviceState";
-        HttpClient.sendPost(url, json);
+        String json = " { \"accountName\":\"操作人1\", \"deviceId\":\"1700760001\"}";
+        String json2 = " { \"accountName\":\"操作人2\", \"deviceId\":\"1700961204\"}";
+
+        String url = "http://47.93.21.73:18081/deviceStatus/getDeviceData";
+        String s = HttpClient.sendPost(url, json);
+       // HttpClient.sendPost(url, json2);
+        System.out.println(s);
+
     }
 
     @Test
@@ -188,5 +193,21 @@ public class SendTest {
         JSONObject jsonObject = queryParam.queryJsonFormat();
         System.out.println(jsonObject.toString());
 
+    }
+    @Test
+    public void getData(){
+        String url = "http://60.205.218.69:1841/joy/saas/v1/device/get";
+        String json ="{\"client_id\":\"123\",\"access_token\":\"\",\"device_id\":\"330000000019\"} ";
+        String s = HttpClient.sendPost(url, json);
+        System.out.println(s);
+    }
+
+    @Test
+    public void testParse(){
+        String json = "{\"data9\":{},\"date\":\"2018-07-26 10:37:34\",\"data8\":\"0\",\"data7\":\"0\",\"data6\":\"0\",\"data5\":\"0\",\"data4\":\"0\",\"meter\":\"201703001320\",\"data3\":\"0\",\"data2\":\"0\",\"data1\":\"3667.7\",\"result\":\"0\",\"payload\":\"FEFE684020130003172068810643C370673600A31600\",\"options\":{\"isAutoClear\":\"1\",\"balanceWarnning\":\"null\",\"protocol\":\"com.joymeter.dtu.data.other.ParseElecData_001\",\"concentrator_model\":\"2\",\"accountName\":\"操作人\",\"meter\":\"201703001320\",\"dtuId\":\"944CD3EF\",\"valveClose\":\"null\",\"sendTime\":1532572655151},\"category\":\"40\"}\n";
+        QueryParam queryParam = new QueryParam();
+        queryParam.parseCallBaskJson(json);
+        System.out.println(queryParam);
+        
     }
 }

@@ -1,10 +1,12 @@
 package com.joymeter.controlcenter.web.controller;
 
 import com.joymeter.controlcenter.service.DeviceStatusService;
+import com.joymeter.controlcenter.utils.CommonsUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 
@@ -60,8 +62,26 @@ public class DeviceStatusController {
     }
 
 
+    /**
+     * 对外提供同步查询接口
+     * 返回设备最新读数，阀门状态
+     */
+    @RequestMapping("/getDeviceData")
+    @ResponseBody
+    public String getDeviceData(@RequestBody String data){
+        return deviceStatusService.getDeviceData(data);
+    }
 
 
+    /**
+     * 对外提供同步查询接口 的回调接口
+     * 返回设备最新读数，阀门状态
+     */
+    @RequestMapping("/getDeviceDataCallBack")
+    @ResponseBody
+    public void getDeviceDataCallBack(@RequestParam("parameters") String data){
+        deviceStatusService.getDeviceDataCallBack(data);
+    }
 
 
 }

@@ -10,4 +10,8 @@ public interface DeviceStatusService {
      Boolean dtuCallBack(String data);
 
     void getDeviceState(String data);
+
+    String getDeviceData(String data);
+
+    void getDeviceDataCallBack(String data);
 }

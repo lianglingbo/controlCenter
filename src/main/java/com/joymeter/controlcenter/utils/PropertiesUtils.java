@@ -16,7 +16,7 @@ import java.util.logging.Logger;
 public class PropertiesUtils {
 
     private static final Logger logger = Logger.getLogger(PropertiesUtils.class.getName());
-    private static final String filePath = System.getProperty("user.dir") + "//serverAnalysis.properties";
+    private static final String filePath = System.getProperty("user.dir") + "//controlCenter.properties";
 
     private PropertiesUtils() {
     }

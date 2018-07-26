@@ -21,6 +21,33 @@ public class QueryParam {
     private String action;
     private String valveId;
     private String callbackurl;
+    private String result;
+    private String data1;
+    private String date;
+
+    public String getResult() {
+        return result;
+    }
+
+    public void setResult(String result) {
+        this.result = result;
+    }
+
+    public String getData1() {
+        return data1;
+    }
+
+    public void setData1(String data1) {
+        this.data1 = data1;
+    }
+
+    public String getDate() {
+        return date;
+    }
+
+    public void setDate(String date) {
+        this.date = date;
+    }
 
     public String getIsAutoClear() {
         return isAutoClear;
@@ -161,8 +188,23 @@ public class QueryParam {
     }
 
 
+    /**
+     * 解析回调内容
+     * @param data
+     * @return
+     */
+    public void parseCallBaskJson(String data){
+        JSONObject callBackObject = JSONObject.parseObject(data);
+        String result =  callBackObject.getString("result");
+        String data1 = callBackObject.getString("data1");
+        String meter = callBackObject.getString("meter");
+        String date = callBackObject.getString("date");
 
-
+        this.result=result;
+        this.data1=data1;
+        this.meter=meter;
+        this.date=date;
+     }
 
     @Override
     public String toString() {
@@ -176,6 +218,9 @@ public class QueryParam {
                 ", action='" + action + '\'' +
                 ", valveId='" + valveId + '\'' +
                 ", callbackurl='" + callbackurl + '\'' +
+                ", result='" + result + '\'' +
+                ", data1='" + data1 + '\'' +
+                ", date='" + date + '\'' +
                 '}';
     }
 }
