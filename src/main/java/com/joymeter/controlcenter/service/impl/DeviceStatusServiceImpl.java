@@ -1,5 +1,6 @@
 package com.joymeter.controlcenter.service.impl;
 
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.joymeter.controlcenter.dao.mapper.DeviceInfoMapper;
 import com.joymeter.controlcenter.domain.DeviceInfo;
@@ -83,11 +84,12 @@ public class DeviceStatusServiceImpl implements DeviceStatusService {
              JSONObject dtuObj = queryParam.queryJsonFormat();
              ///-----------
              String sendMessage = dtuObj.toJSONString();
+
               HttpClient.sendPost(gateWayurl, sendMessage);
              logger.log(Level.INFO,"sendMessage:"+sendMessage);
 
          }catch (Exception e){
-             logger.log(Level.INFO,null,e);
+             logger.log(Level.SEVERE,null,e);
          }
 
     }
@@ -159,14 +161,14 @@ public class DeviceStatusServiceImpl implements DeviceStatusService {
                         logger.log(Level.INFO,"------测试：valveId："+valveId+"    valveState  :"+valveState);
                         deviceInfoMapper.updateValeStatus(valveId, valveState);
                     }catch (Exception e){
-                        logger.log(Level.INFO,null,e);
+                        logger.log(Level.SEVERE,null,e);
                     }
                     return true;
                 }
             }
             return null;
         }catch (Exception e){
-            logger.log(Level.INFO,null,e);
+            logger.log(Level.SEVERE,null,e);
             return null;
         }
     }
@@ -218,12 +220,11 @@ public class DeviceStatusServiceImpl implements DeviceStatusService {
             JSONObject dtuObj = queryParam.queryJsonFormat();
             ///-----------
             String sendMessage = dtuObj.toJSONString();
-            System.out.println(sendMessage);
             HttpClient.sendPost(gateWayurl, sendMessage);
             logger.log(Level.INFO,"sendMessage:"+sendMessage);
 
         }catch (Exception e){
-            logger.log(Level.INFO,null,e);
+            logger.log(Level.SEVERE,null,e);
         }
     }
     /**
@@ -235,7 +236,7 @@ public class DeviceStatusServiceImpl implements DeviceStatusService {
      * }
      * @param
      */
-    public void getJLAADeviceState(String deviceId){
+    public String getJLAADeviceState(String deviceId){
         String url = "http://60.205.218.69:1841/joy/saas/v1/device/get";
 
         JSONObject jsonObject = new JSONObject();
@@ -243,18 +244,17 @@ public class DeviceStatusServiceImpl implements DeviceStatusService {
         jsonObject.put("access_token"," ");
         jsonObject.put("device_id",deviceId);
         String s = HttpClient.sendPost(url, jsonObject.toJSONString());
-
+        return s;
 
     }
 
 
     /**
-     * 发送请求，如果请求失败返回错误代码
+     * 发送请求，如果请求失败返回错误代码，单表查询
      * @return
      */
     public String requestReadData(String data){
         //回调地址：callBackUrl
-        if (StringUtils.isEmpty(data))return "data erro";
         try {
             JSONObject jsonData = JSONObject.parseObject(data);
             String accountName = jsonData.getString("accountName");
@@ -262,20 +262,33 @@ public class DeviceStatusServiceImpl implements DeviceStatusService {
             //回调函数
             String callbackurl = callBackUrl + "/deviceStatus/getDeviceDataCallBack";
             //通过设备编号获取设备信息
-            DeviceInfo deviceInfo = deviceInfoMapper.getDeviceInfoByValveId(deviceId);
-            if(StringUtils.isEmpty(deviceInfo))return "data erro";
+            DeviceInfo deviceInfo = deviceInfoMapper.getDeviceInfoById(deviceId);
+            if(CommonsUtils.isEmpty(deviceInfo)){
+                logger.log(Level.SEVERE,"查询设备信息为空:"+data);
+                return "data erro";
+            }
             //获取协议，category，接口url，
             String category = deviceInfo.getCategory();
             String deviceProtocol = deviceInfo.getDeviceProtocol();
             String dtuId = deviceInfo.getGatewayId();
-            if(CommonsUtils.isEmpty(deviceProtocol)) return "data erro";
-            if(deviceProtocol.contains("JLAA")){
-                //无线表
-                getJLAADeviceState(deviceId);
-                return "JLAA";
+            String dataUsed = deviceInfo.getDataUsed();
+            if(CommonsUtils.isEmpty(deviceProtocol)) {
+                logger.log(Level.SEVERE,"设备协议为空:"+data);
+                return "dataUsed:"+dataUsed;
             }
+            if(deviceProtocol.contains("JLAA")){
+                //无线表，返回表id，给上层处理 {"valveId":valveId}
+                JSONObject JLAAJson = JSONObject.parseObject(data);
+                JLAAJson.put("deviceId",deviceId);
+                JLAAJson.put("JLAA","JLAA");
+                logger.log(Level.INFO,"无线表JLAA 查询接口调用:"+data);
+                return JLAAJson.toString();
+              }
             String gateWayurl = deviceInfo.getGatewayUrl();
-            if(CommonsUtils.isEmpty(gateWayurl)) return "data erro";
+            if(CommonsUtils.isEmpty(gateWayurl)) {
+                logger.log(Level.SEVERE,"gatewayurl为空:"+data);
+                return "dataUsed:"+dataUsed;
+            }
             gateWayurl = "http://"+gateWayurl+"/arm/api/reading";
             //构建查询json
             QueryParam queryParam = new QueryParam();
@@ -290,13 +303,110 @@ public class DeviceStatusServiceImpl implements DeviceStatusService {
             ///-----------
             String sendMessage = dtuObj.toJSONString();
             HttpClient.sendPost(gateWayurl, sendMessage);
-            logger.log(Level.INFO,"sendMessage:"+sendMessage);
+            logger.log(Level.INFO,"方法结束，发送请求信息：sendMessage:"+sendMessage);
             return "success";
         }catch (Exception e){
-            logger.log(Level.INFO,"data:"+data,e);
+            logger.log(Level.SEVERE,"data:"+data,e);
             return "data erro";
         }
     }
+
+
+
+    /**
+     * 发送请求， 批量查询
+     *
+     * {
+     *               "accountName":"操作人",
+     *               "deviceId":"设备编号1,设备编号2,设备编号3",
+     *               
+     *       }
+     *
+     *
+     * @return
+     */
+    public String requestReadDataBatch(String data){
+        //回调地址：callBackUrl
+        try {
+            JSONObject jsonData = JSONObject.parseObject(data);
+            String deviceIdAll = jsonData.getString("deviceId");
+            String accountName = jsonData.getString("accountName");
+
+            //添加嵌套元素
+            JSONObject dtuObj = new JSONObject();
+            JSONArray dtuValueArr = new JSONArray();
+            JSONObject optionsObj = new JSONObject();
+            String dtuId = null;
+            String gateWayurl = null;
+            String callbackurl = callBackUrl + "/deviceStatus/getDeviceDataBatchCallBack";
+
+            //配置项参数，isAutoClear为10表示开关阀，1表示抄表
+            optionsObj.put("isAutoClear","1");
+            optionsObj.put("sendTime",System.currentTimeMillis());
+            optionsObj.put("balanceWarnning","null");
+            optionsObj.put("valveClose","null");
+            optionsObj.put("concentrator_model","2");
+            optionsObj.put("accountName",accountName);
+            //表参数
+            JSONArray metersArray = new JSONArray();
+            //-------添加多表             getDeviceInfo();//获取表信息
+            String[] devices = deviceIdAll.split(",");
+            for (String deviceId:devices) {
+                QueryParam deviceInfo = getDeviceInfo(deviceId);
+                if(CommonsUtils.isEmpty(deviceInfo)){
+                    logger.log(Level.SEVERE,"设备协议为空，deviceId为:"+deviceId);
+                    continue;
+                }
+                if(!CommonsUtils.isEmpty(deviceInfo.getGatewayUrl())){
+                    //gateWayurl = "http://"+deviceInfo.getGatewayUrl()+"/arm/api/reading";
+
+                }
+                 dtuId = deviceInfo.getDtuId();
+                gateWayurl = "http://115.29.173.196:8888/arm/api/reading";
+                JSONObject meters = new JSONObject();
+                meters.put("meter",deviceId);
+                meters.put("category",deviceInfo.getCategory());
+                meters.put("protocol",deviceInfo.getProtocol());
+                metersArray.add(meters);
+
+            }
+
+            //DTU数组对应的值，复杂形式json对象
+            JSONObject info = new JSONObject();
+            info.put("id",dtuId);
+            info.put("url",callbackurl);
+            info.put("options",optionsObj);
+            info.put("meters",metersArray);
+            dtuValueArr.add(info);
+            dtuObj.put("DTU",dtuValueArr);
+            String sendMessage = dtuObj.toJSONString();
+
+            HttpClient.sendPost(gateWayurl, sendMessage);
+            logger.log(Level.INFO,"sendMessage:"+sendMessage);
+            return "success";
+        }catch (Exception e){
+            logger.log(Level.SEVERE,"data:"+data,e);
+            return "data erro";
+        }
+    }
+
+    /**
+     * 根据设备编号查询，category，protocol，dtuId（只需要一个dtuid）
+     * @param deviceId
+     * @return
+     */
+    public QueryParam getDeviceInfo(String deviceId){
+        QueryParam queryParam = new QueryParam();
+        DeviceInfo deviceInfo = deviceInfoMapper.getDeviceInfoById(deviceId);
+        if(CommonsUtils.isEmpty(deviceInfo) || CommonsUtils.isEmpty(deviceInfo.getCategory()) || CommonsUtils.isEmpty(deviceInfo.getDeviceProtocol())) return null;
+        queryParam.setProtocol(deviceInfo.getDeviceProtocol());
+        queryParam.setCategory(deviceInfo.getCategory());
+        queryParam.setDtuId(deviceInfo.getGatewayId());
+        queryParam.setGatewayUrl(deviceInfo.getGatewayUrl());
+        queryParam.setDtuId(deviceInfo.getGatewayId());
+         return queryParam;
+    }
+
     /**
      * 获取最新读数，查询抄表接口
       {
@@ -317,13 +427,30 @@ public class DeviceStatusServiceImpl implements DeviceStatusService {
     private static String GlobalDeviceId = null;
     private static String GlobalDateTime = null;
 
+    public String getDataFromMysql(String data){
+        try{
+            JSONObject jsonData = JSONObject.parseObject(data);
+            String deviceId = jsonData.getString("deviceId");
+            DeviceInfo deviceInfo = deviceInfoMapper.getDeviceInfoById(deviceId);
+            String dataUsed = deviceInfo.getDataUsed();
+            return dataUsed;
+        }catch (Exception e){
+            logger.log(Level.INFO,"查询mysql异常"+data+e);
+            return null;
+        }
+
+     }
     @Override
     public String getDeviceData(String data) {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("result","1");
+        if(CommonsUtils.isEmpty(data) || CommonsUtils.isEmpty(getDataFromMysql(data))) return  jsonObject.toJSONString();
+        jsonObject.put("result","0");
         synchronized (this){
             //发送请求
             String sendResult = requestReadData(data);
+            logger.log(Level.INFO,"抄表sendResult:"+sendResult);
+
             if("success".equals(sendResult)){
                 //发送成功，等待数据回调
                 if(CommonsUtils.isEmpty(GlobalDeviceId)){
@@ -336,7 +463,7 @@ public class DeviceStatusServiceImpl implements DeviceStatusService {
                         jsonObject.put("dateTime",GlobalDateTime);
                         jsonObject.put("result","0");
                     } catch (InterruptedException e) {
-                        logger.log(Level.INFO,"线程异常"+data+e);
+                        logger.log(Level.SEVERE,"线程异常"+data+e);
                         return jsonObject.toJSONString();
 
                     }finally {
@@ -346,7 +473,17 @@ public class DeviceStatusServiceImpl implements DeviceStatusService {
                     }
                 }
                 return jsonObject.toJSONString();
-            }else {
+            } else {
+                if(!CommonsUtils.isEmpty(sendResult) && sendResult.contains("JLAA")) {
+                    //无线表
+                    JSONObject json = JSONObject.parseObject(sendResult);
+                    String deviceId = json.getString("deviceId");
+                    String s = getJLAADeviceState(deviceId);
+                    logger.log(Level.INFO, "抄表，无线表" + data + "无线表接口返回数据为：" + s);
+                }
+                String used = getDataFromMysql(data);
+                jsonObject.put("data",used);
+                logger.log(Level.SEVERE,"发送查询请求失败"+data+"返回上次用量："+used);
                 return jsonObject.toJSONString();
             }
         }
@@ -369,11 +506,11 @@ public class DeviceStatusServiceImpl implements DeviceStatusService {
             logger.log(Level.INFO,"回调结果为："+CommonsUtils.toURLDecoded(data));
             queryParam.parseCallBaskJson(CommonsUtils.toURLDecoded(data));
         }catch (Exception e){
-            logger.log(Level.INFO,"解析回调内容失败"+data,e);
+            logger.log(Level.SEVERE,"解析回调内容失败"+data,e);
         }
         String result = queryParam.getResult();
         if(CommonsUtils.isEmpty(result) || "1".equals(result)){
-            logger.log(Level.INFO,"回调内容为空"+data);
+            logger.log(Level.SEVERE,"回调内容为空"+data);
             return;
         }
         //最新数据
@@ -391,6 +528,19 @@ public class DeviceStatusServiceImpl implements DeviceStatusService {
             this.notify();
         }
 
+
+    }
+
+    @Override
+    public String getDeviceDataBatch(String data) {
+
+        requestReadDataBatch(data);
+        return null;
+    }
+
+    @Override
+    public void getDeviceDataBatchCallBack(String data) {
+        logger.log(Level.INFO,"批量接口回调结果为："+CommonsUtils.toURLDecoded(data));
 
     }
 

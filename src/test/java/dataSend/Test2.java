@@ -1,5 +1,6 @@
 package dataSend;
 
+import com.alibaba.fastjson.JSONObject;
 import org.junit.Test;
 
 /**
@@ -12,6 +13,14 @@ import org.junit.Test;
 public class Test2 {
     @Test
     public void test(){
+        String json = "{   \"accountName\":\"操作人\",   \"deviceId\":\"设备编号1,设备编号2,设备编号3\"}";
+        JSONObject jsonData = JSONObject.parseObject(json);
+        String deviceIdAll = jsonData.getString("deviceId");
+        String[] deviceIds = deviceIdAll.split(",");
+        for (String deviceId:deviceIds) {
+            System.out.println(deviceId+"   ...");
+        }
+
 
     }
 }

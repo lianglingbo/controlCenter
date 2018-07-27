@@ -24,6 +24,15 @@ public class QueryParam {
     private String result;
     private String data1;
     private String date;
+    private String gatewayUrl;
+
+    public String getGatewayUrl() {
+        return gatewayUrl;
+    }
+
+    public void setGatewayUrl(String gatewayUrl) {
+        this.gatewayUrl = gatewayUrl;
+    }
 
     public String getResult() {
         return result;

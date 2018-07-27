@@ -155,18 +155,30 @@ public class SendTest {
     public void send2(){
         String json = " { \"accountName\":\"操作人\",\"id\":\"944CD3EF\", \"valveId\":\"201703001320\",\"action\":\"Open\"}";
         String url = "http://47.93.21.73:18081/deviceStatus/changeValve";
-        HttpClient.sendPost(url, json);
+        String s = HttpClient.sendPost(url, json);
+        System.out.println(s);
     }
 
     @Test
     public void send3(){
-        String json = " { \"accountName\":\"操作人1\", \"deviceId\":\"1700760001\"}";
+        String json = " { \"accountName\":\"操作人1\", \"deviceId\":\"318030000154\"}";
         String json2 = " { \"accountName\":\"操作人2\", \"deviceId\":\"1700961204\"}";
 
         String url = "http://47.93.21.73:18081/deviceStatus/getDeviceData";
         String s = HttpClient.sendPost(url, json);
        // HttpClient.sendPost(url, json2);
         System.out.println(s);
+
+    }
+
+    @Test
+    public void send4(){
+        String json = " { \"accountName\":\"操作人1\", \"deviceId\":\"000000161035,000000163181,020173001916\"}";
+        //String url = "http://127.0.0.1:18081/deviceStatus/getDeviceDataBatch";
+
+        String url = "http://47.93.21.73:18081/deviceStatus/getDeviceDataBatch";
+        String s = HttpClient.sendPost(url, json);
+         System.out.println(s);
 
     }
 

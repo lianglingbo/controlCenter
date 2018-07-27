@@ -14,4 +14,8 @@ public interface DeviceStatusService {
     String getDeviceData(String data);
 
     void getDeviceDataCallBack(String data);
+
+    String getDeviceDataBatch(String data);
+
+    void getDeviceDataBatchCallBack(String data);
 }
